@@ -2,9 +2,13 @@
 <resources>
     <color name="black">#1D2630</color>
     <color name="white">#F6F9F7</color>
-    <color name ="grad1">#1EB09F</color>
-    <color name="grad2">#27BB8F</color>
-    <color name="green">#27C59E</color>
-    <color name="progress">#44C2A5</color>
-    <color name="bar">#6ACFB5</color>
+    <color name="blue_dark">#0D47A1</color>
+    <color name="blue_mid">#1565C0</color>
+    <color name="blue_light">#1976D2</color>
+    <color name="accent">#00BCD4</color>
+    <color name="green">#43A047</color>
+    <color name="grad1">#1565C0</color>
+    <color name="grad2">#1976D2</color>
+    <color name="progress">#42A5F5</color>
+    <color name="bar">#64B5F6</color>
 </resources>

@@ -1,76 +1,83 @@
 package com.example.medireminder
 
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.example.medireminder.databinding.ActivityMainBinding
 import androidx.appcompat.app.AppCompatDelegate
-
-// Force light mode
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.example.medireminder.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var adapter: MedicationAdapter
+
+    companion object {
+        // Set to true from myForm after a successful save to trigger navigation to Meds tab
+        var switchToMedsOnResume = false
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Force light mode
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        NotificationHelper.createNotificationChannel(this)
+        requestNotificationPermission()
 
-        // Set up RecyclerView and adapter
-        adapter = MedicationAdapter(mutableListOf())
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, DashboardFragment())
+                .commit()
+        }
 
-        // Add Medication button
-        binding.btnAddMedication.setOnClickListener {
-            val intent = Intent(this, myForm::class.java)
-            startActivity(intent)
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            val fragment = when (item.itemId) {
+                R.id.nav_home        -> DashboardFragment()
+                R.id.nav_medications -> MedicationsFragment()
+                else -> return@setOnItemSelectedListener false
+            }
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit()
+            true
         }
-        binding.btnLogout.setOnClickListener {
-            FirebaseAuth.getInstance().signOut()  // Sign out the user
-            startActivity(Intent(this, login::class.java))  // Go back to login screen
-            finish()  // Prevent user from coming back with back button
-        }
-        // Fetch medications from Firestore
-        fetchMedications()
     }
 
-    private fun fetchMedications() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid == null) {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
-            return
+    override fun onResume() {
+        super.onResume()
+        if (switchToMedsOnResume) {
+            switchToMedsOnResume = false
+            switchToMedsTab()
         }
+    }
 
-        val db = FirebaseFirestore.getInstance()
-        db.collection("users")
-            .document(uid)
-            .collection("medications")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Toast.makeText(this, "Error loading medications: ${error.message}", Toast.LENGTH_LONG).show()
-                    return@addSnapshotListener
-                }
+    fun switchToHomeTab() {
+        binding.bottomNav.selectedItemId = R.id.nav_home
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, DashboardFragment())
+            .commit()
+    }
 
-                val meds = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(MedicationModel::class.java)
-                } ?: emptyList()
+    fun switchToMedsTab() {
+        binding.bottomNav.selectedItemId = R.id.nav_medications
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, MedicationsFragment())
+            .commit()
+    }
 
-                // Update adapter safely via helper function
-                adapter.setMedications(meds)
-
-                // Show placeholder if empty
-                binding.tvPlaceholder.visibility = if (meds.isEmpty()) View.VISIBLE else View.GONE
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001
+                )
             }
+        }
     }
 }

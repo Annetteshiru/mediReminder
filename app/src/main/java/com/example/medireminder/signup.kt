@@ -1,6 +1,8 @@
 package com.example.medireminder
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.FirebaseFirestore
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -14,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 
 class signup : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -23,20 +26,20 @@ class signup : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
         auth = FirebaseAuth.getInstance()
         val nameEt = findViewById<EditText>(R.id.EtName)
         val emailEt = findViewById<EditText>(R.id.EtEmail)
         val passwordEt = findViewById<EditText>(R.id.EtPass)
         val signBtn = findViewById<Button>(R.id.btnSignUp)
-
-
         val goToSignIn = findViewById<TextView>(R.id.txtGoToSignIn)
+
         signBtn.setOnClickListener {
-            val Name = nameEt.text.toString().trim()
+            val name = nameEt.text.toString().trim()
             val email = emailEt.text.toString().trim()
             val password = passwordEt.text.toString().trim()
 
-            if (Name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Fields cannot be empty", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -44,6 +47,26 @@ class signup : AppCompatActivity() {
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
+                        val user = auth.currentUser
+
+                        // Set Firebase display name
+                        val profileUpdates = UserProfileChangeRequest.Builder()
+                            .setDisplayName(name)
+                            .build()
+                        user?.updateProfile(profileUpdates)
+
+                        // Save user document to Firestore
+                        val uid = user?.uid ?: ""
+                        FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(uid)
+                            .set(mapOf(
+                                "userId"    to uid,
+                                "email"     to email,
+                                "name"      to name,
+                                "createdAt" to System.currentTimeMillis()
+                            ))
+
                         Toast.makeText(this, "Signup successful!", Toast.LENGTH_SHORT).show()
                         startActivity(Intent(this, login::class.java))
                         finish()
@@ -52,9 +75,9 @@ class signup : AppCompatActivity() {
                     }
                 }
         }
+
         goToSignIn.setOnClickListener {
-            val intent = Intent(this, login::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, login::class.java))
             finish()
         }
     }

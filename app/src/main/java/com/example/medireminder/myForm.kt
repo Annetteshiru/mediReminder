@@ -1,10 +1,12 @@
 package com.example.medireminder
 
-import android.app.Activity
-import android.content.Intent
+import android.app.TimePickerDialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -13,14 +15,14 @@ import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar
-import android.app.TimePickerDialog
-import android.view.View
 
 class myForm : AppCompatActivity() {
 
     private lateinit var binding: ActivityMyFormBinding
 
-    // Pill color options: label to hex
+    private var editMedicationId: String? = null
+    private var isEditMode = false
+
     private val pillColors = listOf(
         "White"  to "#FFFFFF",
         "Yellow" to "#FFD700",
@@ -34,20 +36,69 @@ class myForm : AppCompatActivity() {
         "Gray"   to "#9E9E9E"
     )
 
-    private var selectedColor: String = "#FFFFFF"  // Default white
+    private var selectedColor = "#FFFFFF"
     private val scheduledTimes = mutableListOf<String>()
+    private val selectedOffsets = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMyFormBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        editMedicationId = intent.getStringExtra("medicationId")
+        isEditMode = editMedicationId != null
+
+        setupFrequencySpinner()
         setupColorPicker()
         setupAddTimeButton()
+        setupReminderOffsets()
         setupSaveButton()
+
+        if (isEditMode) {
+            binding.textView2.text = "Edit Medication"
+            binding.textView3.text = "Update the details below"
+            val medication = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getSerializableExtra("medication", MedicationModel::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getSerializableExtra("medication") as? MedicationModel
+            }
+            medication?.let { prefillForm(it) }
+        }
     }
 
-    // ─── Color Picker ───
+    private fun setupFrequencySpinner() {
+        val options = arrayOf("Daily", "As needed")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerFrequency.adapter = adapter
+    }
+
+    private fun prefillForm(medication: MedicationModel) {
+        binding.etMedicationName.setText(medication.name)
+        binding.etDosage.setText(medication.dosage)
+        binding.etNotes.setText(medication.notes)
+        selectedColor = medication.color
+
+        val freqOptions = listOf("Daily", "As needed")
+        val freqIndex = freqOptions.indexOf(medication.frequency).coerceAtLeast(0)
+        binding.spinnerFrequency.setSelection(freqIndex)
+
+        medication.times.forEach { time ->
+            scheduledTimes.add(time)
+            addTimeChip(time)
+        }
+
+        medication.reminderOffsets.forEach { offset ->
+            selectedOffsets.add(offset)
+            when (offset) {
+                60L -> binding.cbReminder1hr.isChecked = true
+                30L -> binding.cbReminder30min.isChecked = true
+                5L  -> binding.cbReminder5min.isChecked = true
+            }
+        }
+    }
+
     private fun setupColorPicker() {
         pillColors.forEach { (label, hex) ->
             val circle = View(this).apply {
@@ -59,7 +110,6 @@ class myForm : AppCompatActivity() {
                 }
                 contentDescription = label
                 tag = hex
-
                 setOnClickListener { view ->
                     selectedColor = view.tag as String
                     updateColorSelection(view)
@@ -67,8 +117,15 @@ class myForm : AppCompatActivity() {
             }
             binding.colorPickerContainer.addView(circle)
         }
-        // Pre-select first color
-        binding.colorPickerContainer.getChildAt(0)?.let { updateColorSelection(it) }
+
+        if (!isEditMode) {
+            binding.colorPickerContainer.getChildAt(0)?.let { updateColorSelection(it) }
+        } else {
+            for (i in 0 until binding.colorPickerContainer.childCount) {
+                val child = binding.colorPickerContainer.getChildAt(i)
+                if (child.tag == selectedColor) { updateColorSelection(child); break }
+            }
+        }
     }
 
     private fun updateColorSelection(selectedView: View) {
@@ -83,25 +140,30 @@ class myForm : AppCompatActivity() {
         selectedView.scaleY = 1.2f
     }
 
-    // ─── Time Picker ───
     private fun setupAddTimeButton() {
         binding.btnAddTime.setOnClickListener {
             val calendar = Calendar.getInstance()
-            TimePickerDialog(
-                this,
-                { _, hour, minute ->
-                    val formattedTime = formatTime(hour, minute)
-                    if (!scheduledTimes.contains(formattedTime)) {
-                        scheduledTimes.add(formattedTime)
-                        addTimeChip(formattedTime)
-                    } else {
-                        Toast.makeText(this, "Time already added", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE),
-                false
-            ).show()
+            TimePickerDialog(this, { _, hour, minute ->
+                val formattedTime = formatTime(hour, minute)
+                if (!scheduledTimes.contains(formattedTime)) {
+                    scheduledTimes.add(formattedTime)
+                    addTimeChip(formattedTime)
+                } else {
+                    Toast.makeText(this, "Time already added", Toast.LENGTH_SHORT).show()
+                }
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
+        }
+    }
+
+    private fun setupReminderOffsets() {
+        binding.cbReminder1hr.setOnCheckedChangeListener { _, checked ->
+            if (checked) selectedOffsets.add(60L) else selectedOffsets.remove(60L)
+        }
+        binding.cbReminder30min.setOnCheckedChangeListener { _, checked ->
+            if (checked) selectedOffsets.add(30L) else selectedOffsets.remove(30L)
+        }
+        binding.cbReminder5min.setOnCheckedChangeListener { _, checked ->
+            if (checked) selectedOffsets.add(5L) else selectedOffsets.remove(5L)
         }
     }
 
@@ -113,7 +175,6 @@ class myForm : AppCompatActivity() {
             setTextColor(Color.parseColor("#1A1A2E"))
             chipStrokeWidth = 2f
             setChipStrokeColorResource(android.R.color.darker_gray)
-
             setOnCloseIconClickListener {
                 scheduledTimes.remove(time)
                 binding.chipGroupTimes.removeView(this)
@@ -132,24 +193,24 @@ class myForm : AppCompatActivity() {
         return "%d:%02d %s".format(displayHour, minute, amPm)
     }
 
-    // ─── Validation & Save ───
     private fun setupSaveButton() {
         binding.btnSaveMedication.setOnClickListener {
-            if (validateForm()) saveMedication()
+            if (validateForm()) {
+                binding.btnSaveMedication.isEnabled = false
+                binding.btnSaveMedication.text = "Saving…"
+                saveMedication()
+            }
         }
     }
 
     private fun validateForm(): Boolean {
         var isValid = true
-        val name = binding.etMedicationName.text.toString().trim()
-        val dosage = binding.etDosage.text.toString().trim()
-
-        if (name.isEmpty()) {
+        if (binding.etMedicationName.text.toString().trim().isEmpty()) {
             binding.tilMedicationName.error = "Medication name is required"
             isValid = false
         } else binding.tilMedicationName.error = null
 
-        if (dosage.isEmpty()) {
+        if (binding.etDosage.text.toString().trim().isEmpty()) {
             binding.tilDosage.error = "Dosage is required"
             isValid = false
         } else binding.tilDosage.error = null
@@ -158,37 +219,56 @@ class myForm : AppCompatActivity() {
     }
 
     private fun saveMedication() {
-        val medication = MedicationModel(
-            name   = binding.etMedicationName.text.toString().trim(),
-            dosage = binding.etDosage.text.toString().trim(),
-            color  = selectedColor,
-            times  = scheduledTimes.toList(),
-            notes  = binding.etNotes.text.toString().trim()
-        )
-
-        val db = FirebaseFirestore.getInstance()
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-
-        if (uid == null) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
             return
         }
 
-        db.collection("users")
-            .document(uid)
-            .collection("medications")
-            .add(medication)
-            .addOnSuccessListener {
-                // Return medication to MainActivity immediately
-                val resultIntent = Intent()
-                resultIntent.putExtra("newMedication", medication)
-                setResult(Activity.RESULT_OK, resultIntent)
+        val frequency = binding.spinnerFrequency.selectedItem?.toString() ?: "Daily"
+        val medication = MedicationModel(
+            name = binding.etMedicationName.text.toString().trim(),
+            dosage = binding.etDosage.text.toString().trim(),
+            color = selectedColor,
+            frequency = frequency,
+            times = scheduledTimes.toList(),
+            reminderOffsets = selectedOffsets.toList(),
+            notes = binding.etNotes.text.toString().trim()
+        )
 
-                Toast.makeText(this, "✅ ${medication.name} saved!", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error saving medication: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        val db = FirebaseFirestore.getInstance()
+        val medsRef = db.collection("users").document(uid).collection("medications")
+
+        if (isEditMode && editMedicationId != null) {
+            medication.id = editMedicationId!!
+            NotificationHelper.cancelReminders(this, medication)
+            medsRef.document(editMedicationId!!)
+                .set(medication)
+                .addOnSuccessListener {
+                    NotificationHelper.scheduleReminders(this, medication)
+                    Toast.makeText(this, "${medication.name} updated!", Toast.LENGTH_SHORT).show()
+                    MainActivity.switchToMedsOnResume = true
+                    finish()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Failed to save: ${e.message}", Toast.LENGTH_LONG).show()
+                    binding.btnSaveMedication.isEnabled = true
+                    binding.btnSaveMedication.text = "Save Medication"
+                }
+        } else {
+            medsRef.add(medication)
+                .addOnSuccessListener { docRef ->
+                    medication.id = docRef.id
+                    docRef.update("id", docRef.id)
+                    NotificationHelper.scheduleReminders(this, medication)
+                    Toast.makeText(this, "${medication.name} saved!", Toast.LENGTH_SHORT).show()
+                    MainActivity.switchToMedsOnResume = true
+                    finish()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Failed to save: ${e.message}", Toast.LENGTH_LONG).show()
+                    binding.btnSaveMedication.isEnabled = true
+                    binding.btnSaveMedication.text = "Save Medication"
+                }
+        }
     }
 }
