@@ -1,9 +1,15 @@
 package com.example.medireminder
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
@@ -27,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         NotificationHelper.createNotificationChannel(this)
         requestNotificationPermission()
+        checkExactAlarmPermission()
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -67,6 +74,26 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, MedicationsFragment())
             .commit()
+    }
+
+    private fun checkExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.S ||
+            Build.VERSION.SDK_INT == Build.VERSION_CODES.S_V2
+        ) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Enable Exact Alarms")
+                    .setMessage("To receive medication reminders at the exact time you set, please allow MedRemind to schedule exact alarms in Settings.")
+                    .setPositiveButton("Open Settings") { _, _ ->
+                        startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.parse("package:$packageName")
+                        })
+                    }
+                    .setNegativeButton("Not Now", null)
+                    .show()
+            }
+        }
     }
 
     private fun requestNotificationPermission() {
