@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#1D2630</color>
+    <color name="white">#F6F9F7</color>
+    <color name ="grad1">#1EB09F</color>
+    <color name="grad2">#27BB8F</color>
+    <color name="green">#27C59E</color>
+    <color name="progress">#44C2A5</color>
+    <color name="bar">#6ACFB5</color>
+</resources>
