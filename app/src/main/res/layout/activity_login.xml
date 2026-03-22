@@ -194,18 +194,16 @@
                     </LinearLayout>
 
                     <!-- Google button -->
-                    <Button
+                    <ImageButton
                         android:id="@+id/btnGoogleSignIn"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:background="@drawable/btn_google_bg"
-                        android:drawableStart="@drawable/ic_google"
-                        android:drawablePadding="10dp"
-                        android:text="Continue with Google"
-                        android:textColor="#3C4043"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        app:backgroundTint="@null" />
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@null"
+                        android:src="@drawable/btn_google_signin"
+                        android:scaleType="fitCenter"
+                        android:adjustViewBounds="true"
+                        android:contentDescription="Sign in with Google" />
 
                     <!-- Inline nav link -->
                     <LinearLayout
