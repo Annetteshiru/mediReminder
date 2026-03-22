@@ -2,8 +2,13 @@ package com.example.medireminder
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CircleCrop
 import com.example.medireminder.databinding.ActivityProfileBinding
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 
 class ProfileActivity : AppCompatActivity() {
@@ -22,6 +27,9 @@ class ProfileActivity : AppCompatActivity() {
 
         binding.btnLogout.setOnClickListener {
             auth.signOut()
+            // Also sign out from Google so the account picker shows next time
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+            GoogleSignIn.getClient(this, gso).signOut()
             startActivity(Intent(this, LoginActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             })
@@ -39,5 +47,18 @@ class ProfileActivity : AppCompatActivity() {
         binding.tvProfileName.text = name
         binding.tvProfileEmail.text = email
         binding.tvProfileInitial.text = name.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+
+        // Load Google profile photo if available
+        val photoUrl = user?.photoUrl?.toString()
+        if (!photoUrl.isNullOrEmpty()) {
+            binding.ivProfilePhoto.visibility = View.VISIBLE
+            binding.tvProfileInitial.visibility = View.GONE
+            Glide.with(this)
+                .load(photoUrl)
+                .transform(CircleCrop())
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_gallery)
+                .into(binding.ivProfilePhoto)
+        }
     }
 }

@@ -9,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CircleCrop
 import com.example.medireminder.databinding.FragmentDashboardBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -80,6 +82,16 @@ class DashboardFragment : Fragment() {
         }
         binding.textView6.text = greeting
         binding.textView4.text = name
+
+        // Load Google profile photo into the avatar button if available
+        val photoUrl = user?.photoUrl?.toString()
+        if (!photoUrl.isNullOrEmpty()) {
+            Glide.with(this)
+                .load(photoUrl)
+                .transform(CircleCrop())
+                .placeholder(R.drawable.ic_profile)
+                .into(binding.btnProfile)
+        }
     }
 
     private fun fetchMedications() {

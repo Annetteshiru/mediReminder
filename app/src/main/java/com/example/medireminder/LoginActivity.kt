@@ -6,16 +6,36 @@ import android.text.InputType
 import android.util.Patterns
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.medireminder.databinding.ActivityLoginBinding
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
     private lateinit var auth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            firebaseAuthWithGoogle(account.idToken!!)
+        } catch (e: ApiException) {
+            Toast.makeText(this, "Google sign-in failed: ${e.statusCode}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,12 +51,23 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .requestProfile()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
         binding.btnSignUp.setOnClickListener {
             if (validateForm()) {
                 binding.btnSignUp.isEnabled = false
                 binding.btnSignUp.text = "Signing in…"
                 signIn()
             }
+        }
+
+        binding.btnGoogleSignIn.setOnClickListener {
+            googleSignInLauncher.launch(googleSignInClient.signInIntent)
         }
 
         binding.txtForgotPassword.setOnClickListener {
@@ -101,6 +132,32 @@ class LoginActivity : AppCompatActivity() {
                     else -> e.message ?: "Sign in failed. Please try again."
                 }
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnSuccessListener { result ->
+                val user = result.user ?: return@addOnSuccessListener
+                val isNewUser = result.additionalUserInfo?.isNewUser == true
+                if (isNewUser) {
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(user.uid)
+                        .set(mapOf(
+                            "userId"    to user.uid,
+                            "email"     to (user.email ?: ""),
+                            "name"      to (user.displayName ?: ""),
+                            "photoUrl"  to (user.photoUrl?.toString() ?: ""),
+                            "createdAt" to System.currentTimeMillis()
+                        ))
+                }
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Authentication failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
 
