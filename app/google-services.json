@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "630882936441",
-    "project_id": "medireminder-6b672",
-    "storage_bucket": "medireminder-6b672.firebasestorage.app"
+    "project_number": "1084070160369",
+    "project_id": "medicine-reminder-app-d2d73",
+    "storage_bucket": "medicine-reminder-app-d2d73.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:630882936441:android:4e95461d6ec4e40a28d6a8",
+        "mobilesdk_app_id": "1:1084070160369:android:62c0444813791e38b50650",
         "android_client_info": {
           "package_name": "com.example.medireminder"
         }
@@ -15,7 +15,26 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCeMVjtvmtxGf4GvOKWaz2Vok6Z5M3vkhQ"
+          "current_key": "AIzaSyCTy53RI7wd3PyyNrt3zWCnqVBPxlIi1ys"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1084070160369:android:9e3648ca6c3e7532b50650",
+        "android_client_info": {
+          "package_name": "com.example.medreminder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTy53RI7wd3PyyNrt3zWCnqVBPxlIi1ys"
         }
       ],
       "services": {
