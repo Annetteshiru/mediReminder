@@ -24,10 +24,10 @@
             android:name=".MainActivity"
             android:exported="false" />
         <activity
-            android:name=".login"
+            android:name=".LoginActivity"
             android:exported="false" />
         <activity
-            android:name=".myForm"
+            android:name=".MedicationFormActivity"
             android:exported="false" />
         <activity
             android:name=".ProfileActivity"
@@ -36,7 +36,7 @@
             android:name=".MedicationDetailActivity"
             android:exported="false" />
         <activity
-            android:name=".signup"
+            android:name=".SignupActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -16,7 +16,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar
 
-class myForm : AppCompatActivity() {
+class MedicationFormActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMyFormBinding
 
@@ -47,6 +47,8 @@ class myForm : AppCompatActivity() {
 
         editMedicationId = intent.getStringExtra("medicationId")
         isEditMode = editMedicationId != null
+
+        binding.btnBack.setOnClickListener { finish() }
 
         setupFrequencySpinner()
         setupColorPicker()

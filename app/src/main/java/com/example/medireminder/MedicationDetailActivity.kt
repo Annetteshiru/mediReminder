@@ -36,7 +36,7 @@ class MedicationDetailActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
 
         binding.btnDetailEdit.setOnClickListener {
-            startActivity(Intent(this, myForm::class.java).apply {
+            startActivity(Intent(this, MedicationFormActivity::class.java).apply {
                 putExtra("medicationId", medication.id)
                 putExtra("medication", medication)
             })

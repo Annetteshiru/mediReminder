@@ -56,7 +56,7 @@ class DashboardFragment : Fragment() {
         binding.recyclerView.adapter = adapter
 
         binding.btnAddMedication.setOnClickListener {
-            startActivity(Intent(requireContext(), myForm::class.java))
+            startActivity(Intent(requireContext(), MedicationFormActivity::class.java))
         }
 
         binding.btnProfile.setOnClickListener {
@@ -106,10 +106,8 @@ class DashboardFragment : Fragment() {
 
     private fun fetchTodayLogs() {
         val uid = auth.currentUser?.uid ?: return
-        logsListener = db.collection("logs")
-            .whereEqualTo("userId", uid)
+        logsListener = db.collection("users").document(uid).collection("logs")
             .whereEqualTo("date", todayDate)
-            .whereEqualTo("taken", true)
             .addSnapshotListener { snapshot, error ->
                 if (!isAdded) return@addSnapshotListener
                 if (error != null) return@addSnapshotListener
@@ -124,7 +122,6 @@ class DashboardFragment : Fragment() {
 
     private fun fetchWeeklyData() {
         val uid = auth.currentUser?.uid ?: return
-        val cal = Calendar.getInstance()
         // Build last-7-day labels and date strings
         val dayLabels = mutableListOf<String>()
         val dateStrings = mutableListOf<String>()
@@ -136,10 +133,8 @@ class DashboardFragment : Fragment() {
         }
         val sevenDaysAgo = dateStrings.first()
 
-        db.collection("logs")
-            .whereEqualTo("userId", uid)
+        db.collection("users").document(uid).collection("logs")
             .whereGreaterThanOrEqualTo("date", sevenDaysAgo)
-            .whereEqualTo("taken", true)
             .get()
             .addOnSuccessListener { snapshot ->
                 if (!isAdded) return@addOnSuccessListener
@@ -164,7 +159,7 @@ class DashboardFragment : Fragment() {
             "takenAt"       to System.currentTimeMillis(),
             "date"          to todayDate
         )
-        db.collection("logs").add(log)
+        db.collection("users").document(uid).collection("logs").add(log)
             .addOnSuccessListener {
                 if (!isAdded) return@addOnSuccessListener
                 Toast.makeText(requireContext(), "✔ ${medication.name} marked as taken!", Toast.LENGTH_SHORT).show()
@@ -198,7 +193,7 @@ class DashboardFragment : Fragment() {
     }
 
     private fun openEditForm(medication: MedicationModel) {
-        startActivity(Intent(requireContext(), myForm::class.java).apply {
+        startActivity(Intent(requireContext(), MedicationFormActivity::class.java).apply {
             putExtra("medicationId", medication.id)
             putExtra("medication", medication)
         })

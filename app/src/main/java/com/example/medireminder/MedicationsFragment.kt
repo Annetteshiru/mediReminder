@@ -53,7 +53,7 @@ class MedicationsFragment : Fragment() {
         binding.recyclerViewMeds.adapter = adapter
 
         binding.btnAddMed.setOnClickListener {
-            startActivity(Intent(requireContext(), myForm::class.java))
+            startActivity(Intent(requireContext(), MedicationFormActivity::class.java))
         }
 
         binding.btnBack.setOnClickListener {
@@ -87,10 +87,8 @@ class MedicationsFragment : Fragment() {
 
     private fun fetchTodayLogs() {
         val uid = auth.currentUser?.uid ?: return
-        logsListener = db.collection("logs")
-            .whereEqualTo("userId", uid)
+        logsListener = db.collection("users").document(uid).collection("logs")
             .whereEqualTo("date", todayDate)
-            .whereEqualTo("taken", true)
             .addSnapshotListener { snapshot, error ->
                 if (!isAdded) return@addSnapshotListener
                 if (error != null) return@addSnapshotListener
@@ -112,7 +110,7 @@ class MedicationsFragment : Fragment() {
             "takenAt"       to System.currentTimeMillis(),
             "date"          to todayDate
         )
-        db.collection("logs").add(log)
+        db.collection("users").document(uid).collection("logs").add(log)
             .addOnSuccessListener {
                 if (isAdded) Toast.makeText(requireContext(), "${medication.name} marked as taken!", Toast.LENGTH_SHORT).show()
             }

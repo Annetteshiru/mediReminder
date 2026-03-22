@@ -120,7 +120,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="32dp"
+                android:layout_marginBottom="8dp"
                 android:hint="Password"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
@@ -141,6 +141,19 @@
                     android:textColor="#1D2630"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Forgot password -->
+            <TextView
+                android:id="@+id/txtForgotPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginBottom="24dp"
+                android:background="?attr/selectableItemBackground"
+                android:paddingVertical="6dp"
+                android:text="Forgot password?"
+                android:textColor="#1565C0"
+                android:textSize="13sp" />
 
             <!-- Sign In button -->
             <Button
